@@ -15,6 +15,52 @@ enum class ComponentWeight : int
     LightWeight,
     Unknown
 };
+enum class PCManagerEnum : int
+{
+  Insert,
+  Break,
+  PullOut,
+  Sell,
+  None
+};
+class PCStrategy
+{
+public:
+  virtual ~PCStrategy() {}
+  virtual void displayDetails() = 0;
+};
+
+class InsertStrategy : public PCStrategy
+{
+  void displayDetails() { cout << "Insert component into PC..."; }
+};
+
+class BreakStrategy : public PCStrategy
+{
+  void displayDetails() { cout << "Break component..."; }
+};
+
+class PullOutStrategy : public PCStrategy
+{
+  void displayDetails() { cout << "Pull out component into PC..."; }
+};
+class SellStrategy : public PCStrategy
+{
+  void displayDetails() { cout << "Sell using avito..."; }
+};
+PCStrategy *CreatePCStrategy(PCManagerEnum pcManner)
+{
+  switch(pcManner)
+  {
+    case PCManagerEnum::Insert: return new InsertStrategy;
+    case PCManagerEnum::Break: return new BreakStrategy;
+    case PCManagerEnum::PullOut: return new PullOutStrategy;
+    case PCManagerEnum::Sell: return new SellStrategy;
+
+
+    default: return nullptr;
+  }
+}
 
 class Component {
 private:
@@ -22,37 +68,72 @@ private:
     string Name;
     string Manufacturer;
     int Price;
+    PCStrategy *PCManner;
+
+void DoPCUsingStrategy()
+{
+  if(PCManner == nullptr)
+  {
+    
+    cout << "Do nothing!";
+    return;
+  }
+  else
+  {
+    
+    PCManner->displayDetails();
+  }
+}
+
+void DetectGoodOrNot()
+{
+  if(IsGood())
+  {
+      cout << "GOOD";
+  }
+  else
+  {
+      cout << "BAD";
+  }
+}
 protected:
     bool ComponentIsGood;
 public:
-    Component(ComponentWeight weight) : Weight(weight), Manufacturer(""), Name(""),ComponentIsGood(false),Price(0)
+    Component(ComponentWeight weight) : Weight(weight), Manufacturer(""), Name(""),ComponentIsGood(false),Price(0), PCManner(nullptr)
     {
-        // Значение инициализируется случайным числом 0 или 1
+
         ComponentIsGood = static_cast<bool>(rand()%2);
     }
 
-    virtual ~Component() {} // Деструктор (объявлен виртуальным, чтобы обеспечить корректное уничтожение унаследованных классов)
+    virtual ~Component() {
+    if(PCManner != nullptr) delete PCManner;
+    }
 
-    // Функция с реализацией
+   
     bool IsGood() const { return ComponentIsGood; }
 
-    // Функция с реализацией
+   
     ComponentWeight GetWeight() const { return Weight; }
 
-    // Функция с реализацией
+    
     int getPrice() const {return Price;}
-    // Функция с реализацией
-    virtual void displayDetails()
+    virtual void PrintType() = 0;
+
+
+
+    void displayDetails()
     {
-        if(IsGood())
-        {
-            cout << "Integration GOOD component... ";
-        }
-        else
-        {
-            cout << "Integration BAD component... ";
-        }
-    }
+        
+        PrintType();
+        cout << " : ";
+        DetectGoodOrNot();
+        cout << " : ";
+        DoPCUsingStrategy();  
+        cout << endl;
+}
+
+
+void SetPCManner(PCStrategy *pcManner) { PCManner = pcManner; }
 };
 
 class CPU : public Component
@@ -61,52 +142,39 @@ public:
     CPU();
     ~CPU() {}
 
-    void displayDetails() override;
+    void PrintType() { cout << "CPU"; }
 };
 
-// Реализация конструктора
+
 CPU::CPU() : Component(ComponentWeight::LightWeight)
 {
+    SetPCManner(CreatePCStrategy(PCManagerEnum::Insert));
 }
 
-void CPU::displayDetails()
-{
-    Component::displayDetails(); // Вызов функции, определенной в базовом классе
-    cout << "integration CPU into a computer" << endl;
-}
 
 class GPU : public Component
 {
 public:
-    GPU() : Component(ComponentWeight::Heavy){}
+    GPU() : Component(ComponentWeight::Heavy){SetPCManner(CreatePCStrategy(PCManagerEnum::Break));}
     ~GPU() {}
 
 
-    void displayDetails()override;
+    void PrintType() { cout << "GPU"; }
 };
 
-void GPU::displayDetails()
-{
-    cout << "integration GPU into a computer" << endl;
-}
 
 
 class RAM : public Component
 {
 public:
-    RAM() : Component(ComponentWeight::Normal){}
+    RAM() : Component(ComponentWeight::Normal){SetPCManner(CreatePCStrategy(PCManagerEnum::PullOut));}
     ~RAM() {}
 
-   void displayDetails()override;
+    void PrintType() { cout << "RAM"; }
 };
 
-void RAM::displayDetails()
-{
-    cout << "integration RAM into a computer" << endl;
-}
 
 
-// Реализация паттерна "Фабричный метод" для создания фруктов
 
 enum class ComponentType : int
 {
@@ -138,7 +206,7 @@ Component *CreateComponent(ComponentType type)
 }
 
 
-// Декоратор итератора для выделения фруктов по цвету
+
 
 class ComponentWeightDecorator : public IteratorDecorator<class Component*>
 {
@@ -168,7 +236,7 @@ public:
     }
 };
 
-// Декоратор итератора для выделения "хороших" или "плохих" фруктов
+
 
 class ComponentGoodDecorator : public IteratorDecorator<class Component*>
 {
@@ -198,8 +266,7 @@ public:
     }
 };
 
-// Функция, позволяющая "съесть" любые фрукты из любого контейнера
-// вне зависимости от его внутреннего устройства
+
 void InsertAll(Iterator<Component*> *it)
 {
     for(it->First(); !it->IsDone(); it->Next())
@@ -209,8 +276,7 @@ void InsertAll(Iterator<Component*> *it)
     }
 }
 
-// Функция, позволяющая "съесть" только хорошие фрукты
-// (демонстрация решения проблемы "в лоб")
+
 void InsertAllGood(Iterator<Component*> *it)
 {
     for(it->First(); !it->IsDone(); it->Next())
@@ -222,8 +288,7 @@ void InsertAllGood(Iterator<Component*> *it)
     }
 }
 
-// Функция, позволяющая "съесть" только зеленые фрукты
-// (демонстрация решения проблемы "в лоб")
+
 void InsertAllLightWeight(Iterator<Component*> *it)
 {
     for(it->First(); !it->IsDone(); it->Next())
@@ -241,33 +306,34 @@ int main()
 
     size_t N = 30;
 
-    // Массив фруктов
+    
 
     ArrayClass<Component*> ComponentArray;
     for(size_t i=0; i<N; i++)
     {
-        int Component_num = rand()%3+1; // Число от 1 до 3 (случайный фрукт)
+        int Component_num = rand()%3+1; 
         ComponentType Component_type = static_cast<ComponentType>(Component_num);
         Component *newComponent = CreateComponent(Component_type);
+        newComponent->SetPCManner(CreatePCStrategy(PCManagerEnum::Sell));
         ComponentArray.Add(newComponent);
     }
 
     wcout << L"Размер массива комплектующих: " << ComponentArray.Size() << endl;
 
-    // Связанный список фруктов (для демонстрации адаптера)
+   
 
-    list<Component*> ComponentVector; // а еще можно vector, forward_list, ...
+    list<Component*> ComponentVector; 
     for(size_t i=0; i<N; i++)
     {
-        int Component_num = rand()%3+1; // Число от 1 до 3 (случайный фрукт)
+        int Component_num = rand()%3+1;
         ComponentType Component_type = static_cast<ComponentType>(Component_num);
         Component *newComponent = CreateComponent(Component_type);
-        ComponentVector.push_back(newComponent); // Добавить новый фрукт в конец списка
+        ComponentVector.push_back(newComponent); 
     }
 
     wcout << L"Размер списка комплектующих: " << ComponentVector.size() << endl;
 
-    // Обход в простом цикле
+    
     cout << endl << "Insert all in a simple loop:" << endl;
     for(size_t i=0; i<ComponentArray.Size(); i++)
     {
@@ -275,39 +341,40 @@ int main()
         currentComponent->displayDetails();
     }
 
-    // Обход всех элементов при помощи итератора
+    
     cout << endl << "Insert all using iterator:" << endl;
     Iterator<Component*> *allIt = ComponentArray.GetIterator();
     InsertAll(allIt);
     delete allIt;
 
-    // Обход всех хороших фруктов
+    
     cout << endl << "Inset all good using iterator:" << endl;
     Iterator<Component*> *goodIt = new ComponentGoodDecorator(ComponentArray.GetIterator(), true);
     InsertAll(goodIt);
     delete goodIt;
 
-    // Обход всех оранжевых фруктов
+    
     cout << endl << "Inset all Normal using iterator:" << endl;
     Iterator<Component*> *normalIt = new ComponentWeightDecorator(ComponentArray.GetIterator(), ComponentWeight::Normal);
     InsertAll(normalIt);
     delete normalIt;
 
-    // Обход всех хороших оранжевых фруктов
+    
     cout << endl << "Inset all good normal using iterator:" << endl;
     Iterator<Component*> *goodNormalIt =
         new ComponentGoodDecorator(new ComponentWeightDecorator(ComponentArray.GetIterator(), ComponentWeight::Normal), true);
     InsertAll(goodNormalIt);
     delete goodNormalIt;
 
-    // Демонстрация работы адаптера
+    
     cout << endl << "Insert all good normal using adapted iterator (another container):" << endl;
     Iterator<Component*> *adaptedIt = new ConstIteratorAdapter<std::list<Component*>, Component*>(&ComponentVector);
     Iterator<Component*> *adaptedNormalIt = new ComponentGoodDecorator(new ComponentWeightDecorator(adaptedIt, ComponentWeight::Normal), true);
     InsertAll(adaptedNormalIt);
     delete adaptedNormalIt;
-    // adaptedIt удалять не надо, так как он удаляется внутри декоратора adaptedOrangeIt
+    
 
     return 0;
 }
+
 
